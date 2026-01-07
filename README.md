@@ -59,3 +59,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Geliştirme Kuralları
+
+- **Line endings:** LF zorunlu (CRLF kullanmayın)
+- **Charset:** UTF-8 encoding gerekli
+- **EditorConfig:** `.editorconfig` dosyasına uyun (indent: 2 spaces)
+- **Windows kullanıcıları:** Git'in otomatik CRLF dönüşümünü devre dışı bırakın
+- **Kod formatı:** TypeScript/JavaScript için 2 space indent
+- **Trailing whitespace:** Markdown haricinde temizlenmelidir
+
+```bash
+# Windows'ta CRLF dönüşümünü devre dışı bırak
+git config core.autocrlf false
+```
