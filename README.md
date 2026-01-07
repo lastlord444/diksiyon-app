@@ -1,24 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Diksiyon App
 
-## Getting Started
+Diksiyon ve telaffuz geliştirme uygulaması. [Next.js](https://nextjs.org) ile geliştirilmiştir.
 
-First, run the development server:
+## Geliştirme
+
+Geliştirme sunucusunu başlatın:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) adresinden uygulamaya erişebilirsiniz.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Komutlar
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Geliştirme sunucusu
+npm run dev
+
+# Production build
+npm run build
+
+# Production sunucusu
+npm run start
+
+# Linting
+npm run lint
+
+# TypeScript tip kontrolü
+npm run typecheck
+```
+
+## Özellikler
+
+- ⚡ Next.js 16 App Router
+- 🎨 Tailwind CSS v4
+- 📝 TypeScript desteği
+- 🔍 ESLint yapılandırması
+- 🌓 Dark/Light mode
+- 📱 Responsive tasarım
+- 🚀 Vercel deploy hazır
+
+## Geliştirme Notları
+
+Uygulama [`src/app/page.tsx`](src/app/page.tsx) dosyasını düzenleyerek özelleştirilebilir. Değişiklikler otomatik olarak yansır.
 
 ## Learn More
 
