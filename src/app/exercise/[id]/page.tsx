@@ -9,8 +9,9 @@ interface ExercisePageProps {
 interface Exercise {
   id: string;
   title: string;
-  body: string;
-  created_at: string;
+  content: string;
+  sort_order: number;
+  is_active: boolean;
 }
 
 export default async function ExercisePage({ params }: ExercisePageProps) {
@@ -22,8 +23,9 @@ export default async function ExercisePage({ params }: ExercisePageProps) {
     const supabase = await createClient();
     const { data, error: fetchError } = await supabase
       .from('exercises')
-      .select('id, title, body, created_at')
+      .select('id, title, content, sort_order, is_active')
       .eq('id', id)
+      .eq('is_active', true)
       .single();
 
     if (fetchError) {
@@ -68,7 +70,7 @@ export default async function ExercisePage({ params }: ExercisePageProps) {
         <section className="border border-gray-200 rounded-lg p-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">Egzersiz Metni</h2>
           <p className="text-gray-700 leading-relaxed">
-            {exercise.body}
+            {exercise.content}
           </p>
         </section>
         

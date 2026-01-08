@@ -1,18 +1,42 @@
 -- Diksiyon App Database Schema
--- TASK-008: exercises + attempts tables with RLS
+-- Updated: exercises tablosu yenilendi + attempts + RLS policies
 -- 
 -- Usage: Supabase SQL Editor'da tek seferde çalıştır
 
 -- ===================================
--- 1. TABLES
+-- 1. EXTENSIONS
+-- ===================================
+
+-- UUID extension (gen_random_uuid için gerekli)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ===================================
+-- 2. FUNCTIONS
+-- ===================================
+
+-- Updated_at otomatik güncelleme function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- ===================================
+-- 3. TABLES
 -- ===================================
 
 -- Exercises table: egzersizlerin metadata'sı
 CREATE TABLE public.exercises (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL,
-  body text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  content text NOT NULL,
+  reference_audio_path text NULL,
+  sort_order int NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- Attempts table: kullanıcı egzersiz denemelerinin kayıtları  
@@ -25,8 +49,21 @@ CREATE TABLE public.attempts (
 );
 
 -- ===================================
--- 2. INDEXES
+-- 4. TRIGGERS
 -- ===================================
+
+-- Updated_at trigger for exercises table
+CREATE TRIGGER update_exercises_updated_at
+    BEFORE UPDATE ON public.exercises
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- ===================================
+-- 5. INDEXES
+-- ===================================
+
+-- Exercise listesi için sort_order + is_active
+CREATE INDEX idx_exercises_sort_active ON public.exercises(sort_order ASC, is_active);
 
 -- User'ın attempts'larını created_at desc ile sırala
 CREATE INDEX idx_attempts_user_created ON public.attempts(user_id, created_at DESC);
@@ -35,7 +72,7 @@ CREATE INDEX idx_attempts_user_created ON public.attempts(user_id, created_at DE
 CREATE INDEX idx_attempts_exercise_created ON public.attempts(exercise_id, created_at DESC);
 
 -- ===================================
--- 3. ROW LEVEL SECURITY (RLS)
+-- 6. ROW LEVEL SECURITY (RLS)
 -- ===================================
 
 -- Enable RLS for both tables
@@ -43,14 +80,18 @@ ALTER TABLE public.exercises ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
 
 -- ===================================
--- 4. RLS POLICIES
+-- 7. RLS POLICIES
 -- ===================================
 
--- EXERCISES: Public read (anon + authenticated users)
-CREATE POLICY "exercises_select_public" ON public.exercises 
+-- EXERCISES: Authenticated users can read active exercises
+CREATE POLICY "exercises_select_authenticated" ON public.exercises 
   FOR SELECT 
-  TO anon, authenticated
-  USING (true);
+  TO authenticated
+  USING (is_active = true);
+
+-- EXERCISES: INSERT kapalı (manuel seed ile eklenir)
+-- EXERCISES: UPDATE kapalı  
+-- EXERCISES: DELETE kapalı
 
 -- ATTEMPTS: User can select only their own attempts
 CREATE POLICY "attempts_select_own" ON public.attempts
@@ -64,29 +105,13 @@ CREATE POLICY "attempts_insert_own" ON public.attempts
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
--- ===================================
--- 5. SEED DATA
--- ===================================
-
--- Sample exercises (3 gerçekçi Türkçe egzersiz)
-INSERT INTO public.exercises (title, body) VALUES 
-(
-  'Harf Telaffuzu - A, E, I Sesli Harfleri',
-  'Aşağıdaki kelimeleri net bir şekilde telaffuz edin: Ahmet, elma, inek, odul, uzak. Her kelimeyi 3 kez tekrarlayın ve sesli harflere özellikle dikkat edin.'
-),
-(
-  'Nefes Kontrolü ve Tonlama',
-  'Derin bir nefes alın ve "Merhaba, bugün hava çok güzel" cümlesini tek nefeste, net ve anlaşılır şekilde söyleyin. Cümle sonunda sesiniz titrememeli.'
-),
-(
-  'Zor Ünsüz Birleşimleri',
-  'Bu kelime gruplarını hızlı ve doğru telaffuz edin: strateji, planlama, krupye, proje, trafik. Her grubu 5 kez tekrar edin.'
-);
+-- ATTEMPTS: UPDATE kapalı
+-- ATTEMPTS: DELETE kapalı
 
 -- ===================================
 -- SCHEMA COMPLETED
 -- ===================================
 
 -- Verification queries (kullanım örnekleri):
--- SELECT * FROM public.exercises;
+-- SELECT * FROM public.exercises WHERE is_active = true ORDER BY sort_order;
 -- SELECT * FROM public.attempts WHERE user_id = auth.uid();

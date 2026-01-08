@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 interface Exercise {
   id: string;
   title: string;
-  created_at: string;
+  sort_order: number;
+  is_active: boolean;
 }
 
 export default async function Home() {
@@ -15,8 +16,9 @@ export default async function Home() {
     const supabase = await createClient();
     const { data, error: fetchError } = await supabase
       .from('exercises')
-      .select('id, title, created_at')
-      .order('created_at', { ascending: true });
+      .select('id, title, sort_order, is_active')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
 
     if (fetchError) {
       error = `DB Hatası: ${fetchError.message}`;
