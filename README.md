@@ -31,6 +31,21 @@ npm run lint
 npm run typecheck
 ```
 
+## Health Check
+
+Uygulamanın sağlık durumunu kontrol etmek için API endpoint'i:
+
+```bash
+# Servis sağlığını kontrol et
+curl http://localhost:3000/api/health
+```
+
+**Environment Variables:**
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Bu endpoint hem environment variable'ların varlığını hem de Supabase bağlantısını doğrular.
+
 ## Özellikler
 
 - ⚡ Next.js 16 App Router
