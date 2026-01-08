@@ -46,6 +46,16 @@ curl http://localhost:3000/api/health
 
 Bu endpoint hem environment variable'ların varlığını hem de Supabase bağlantısını doğrular.
 
+## DB Kurulum
+
+Supabase veritabanı şemasını kurmak için:
+
+1. Supabase Dashboard'da **SQL Editor** açın
+2. [`supabase/schema.sql`](supabase/schema.sql) dosyasının tamamını kopyalayın
+3. SQL Editor'a yapıştırıp **RUN** edin
+4. `exercises` (3 örnek egzersiz) ve `attempts` tabloları oluşturulacak
+5. RLS policies otomatik aktifleşir (anon read + authenticated user-specific access)
+
 ## Özellikler
 
 - ⚡ Next.js 16 App Router
