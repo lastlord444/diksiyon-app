@@ -1,9 +1,9 @@
 interface ExercisePageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
-export default async function ExercisePage({ params }: ExercisePageProps) {
-  const { id } = await params;
+export default function ExercisePage({ params }: ExercisePageProps) {
+  const { id } = params;
   
   return (
     <div>
