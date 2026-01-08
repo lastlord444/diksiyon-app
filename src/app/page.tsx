@@ -1,11 +1,54 @@
 import Link from "next/link";
+import { createClient } from '@/lib/supabase/server';
 
-export default function Home() {
-  const exercises = [
-    { id: 1, title: "Harf Telaffuzu - A, E, I" },
-    { id: 2, title: "Nefes Teknikleri" },
-    { id: 3, title: "Tonlama Egzersizleri" }
-  ];
+interface Exercise {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+export default async function Home() {
+  let exercises: Exercise[] = [];
+  let error: string | null = null;
+
+  try {
+    const supabase = await createClient();
+    const { data, error: fetchError } = await supabase
+      .from('exercises')
+      .select('id, title, created_at')
+      .order('created_at', { ascending: true });
+
+    if (fetchError) {
+      error = `DB Hatası: ${fetchError.message}`;
+    } else {
+      exercises = data || [];
+    }
+  } catch {
+    error = 'Veritabanı bağlantısı başarısız. Lütfen daha sonra tekrar deneyin.';
+  }
+
+  if (error) {
+    return (
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Egzersizler</h1>
+        <div className="p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+          <p className="font-medium">Egzersizler yüklenemedi</p>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (exercises.length === 0) {
+    return (
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Egzersizler</h1>
+        <div className="p-4 bg-gray-100 border border-gray-300 text-gray-600 rounded-lg">
+          <p>Henüz egzersiz bulunmuyor.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -22,7 +65,7 @@ export default function Home() {
               {exercise.title}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Egzersiz #{exercise.id}
+              Egzersiz ID: {exercise.id}
             </p>
           </Link>
         ))}

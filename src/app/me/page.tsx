@@ -2,12 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
+interface AttemptWithExercise {
+  id: string;
+  created_at: string;
+  status: string;
+  exercise: {
+    id: string;
+    title: string;
+  };
+}
+
 export default function MePage() {
   const [user, setUser] = useState<User | null>(null)
+  const [attempts, setAttempts] = useState<AttemptWithExercise[]>([])
   const [loading, setLoading] = useState(true)
+  const [attemptsLoading, setAttemptsLoading] = useState(false)
+  const [attemptsError, setAttemptsError] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -22,6 +36,10 @@ export default function MePage() {
         }
         
         setUser(user)
+        
+        // User yüklendikten sonra attempts'leri getir
+        await fetchAttempts(user.id)
+        
       } catch (error) {
         console.error('Kullanıcı bilgisi alınırken hata:', error)
         router.push('/login')
@@ -32,6 +50,49 @@ export default function MePage() {
 
     getUser()
   }, [router])
+
+  const fetchAttempts = async (userId: string) => {
+    setAttemptsLoading(true)
+    setAttemptsError('')
+    
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('attempts')
+        .select(`
+          id,
+          created_at,
+          status,
+          exercises:exercise_id (
+            id,
+            title
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (error) {
+        setAttemptsError(`DB Hatası: ${error.message}`)
+      } else {
+        // Supabase foreign key sonuçlarını düzeltme (exercises array döndürüyor)
+        const formattedAttempts = (data || []).map(attempt => ({
+          id: attempt.id,
+          created_at: attempt.created_at,
+          status: attempt.status,
+          exercise: {
+            id: attempt.exercises?.[0]?.id || '',
+            title: attempt.exercises?.[0]?.title || 'Silinmiş egzersiz'
+          }
+        }))
+        setAttempts(formattedAttempts)
+      }
+    } catch {
+      setAttemptsError('Attempts listesi yüklenemedi. Ağ bağlantınızı kontrol edin.')
+    } finally {
+      setAttemptsLoading(false)
+    }
+  }
 
   const handleLogout = async () => {
     try {
@@ -81,20 +142,69 @@ export default function MePage() {
         
         <section className="border border-gray-200 rounded-lg p-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">
-            İlerleme
+            Deneme Geçmişi
           </h2>
-          <p className="text-gray-600">
-            Attempt geçmişi TASK-009&apos;da gelecek. (placeholder)
-          </p>
+          
+          {attemptsLoading ? (
+            <p className="text-gray-600">Denemeler yükleniyor...</p>
+          ) : attemptsError ? (
+            <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+              <p className="font-medium">Deneme geçmişi yüklenemedi</p>
+              <p className="text-sm mt-1">{attemptsError}</p>
+            </div>
+          ) : attempts.length === 0 ? (
+            <p className="text-gray-600">
+              Henüz egzersiz denemesi yapılmamış. Egzersizlere başlamak için <Link href="/" className="text-blue-600 hover:underline">anasayfaya</Link> gidin.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {attempts.map((attempt) => (
+                <div key={attempt.id} className="p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-gray-900">{attempt.exercise.title}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Durum: <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{attempt.status}</span>
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {new Date(attempt.created_at).toLocaleDateString('tr-TR', {
+                        year: 'numeric',
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
         
         <section className="border border-gray-200 rounded-lg p-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">
             İstatistikler
           </h2>
-          <p className="text-gray-600">
-            Egzersiz istatistikleri burada görünecek. (placeholder)
-          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <p className="text-2xl font-bold text-blue-600">{attempts.length}</p>
+              <p className="text-sm text-blue-800">Toplam Deneme</p>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <p className="text-2xl font-bold text-green-600">
+                {attempts.filter(a => a.status === 'started').length}
+              </p>
+              <p className="text-sm text-green-800">Başlatılan</p>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <p className="text-2xl font-bold text-gray-600">
+                {new Set(attempts.map(a => a.exercise.id)).size}
+              </p>
+              <p className="text-sm text-gray-800">Farklı Egzersiz</p>
+            </div>
+          </div>
         </section>
       </div>
     </div>
