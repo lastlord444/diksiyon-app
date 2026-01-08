@@ -2,24 +2,20 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export async function GET() {
+  const headers = { 'Cache-Control': 'no-store' }
+  
   // Environment variables kontrolü
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
-  const missing = []
+  const missing: string[] = []
   if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
   if (!supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
   
   if (missing.length > 0) {
     return NextResponse.json(
       { ok: false, error: 'MISSING_ENV', missing },
-      { 
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-store',
-          'Content-Type': 'application/json'
-        }
-      }
+      { status: 500, headers }
     )
   }
   
@@ -31,13 +27,7 @@ export async function GET() {
     if (error) {
       return NextResponse.json(
         { ok: false, error: 'SUPABASE_UNREACHABLE', message: error.message },
-        { 
-          status: 503,
-          headers: {
-            'Cache-Control': 'no-store',
-            'Content-Type': 'application/json'
-          }
-        }
+        { status: 503, headers }
       )
     }
     
@@ -49,26 +39,14 @@ export async function GET() {
         supabase: true, 
         ts: new Date().toISOString() 
       },
-      { 
-        status: 200,
-        headers: {
-          'Cache-Control': 'no-store',
-          'Content-Type': 'application/json'
-        }
-      }
+      { status: 200, headers }
     )
     
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { ok: false, error: 'SUPABASE_UNREACHABLE', message },
-      { 
-        status: 503,
-        headers: {
-          'Cache-Control': 'no-store',
-          'Content-Type': 'application/json'
-        }
-      }
+      { status: 503, headers }
     )
   }
 }
