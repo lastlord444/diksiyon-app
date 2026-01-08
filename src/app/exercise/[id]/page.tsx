@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AttemptButton from '@/components/AttemptButton';
 
 interface ExercisePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 interface Exercise {
@@ -14,8 +14,43 @@ interface Exercise {
   is_active: boolean;
 }
 
+// UUID format validation
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 export default async function ExercisePage({ params }: ExercisePageProps) {
-  const { id } = params;
+  // Route params await edilmeli (Next.js 16 App Router)
+  const { id } = await params;
+  
+  // ID validation
+  if (!id || id === 'undefined' || typeof id !== 'string') {
+    return (
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Geçersiz Egzersiz</h1>
+        <div className="p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+          <p className="font-medium">Egzersiz ID&apos;si bulunamadı</p>
+          <p className="text-sm mt-1">Lütfen ana sayfadan bir egzersiz seçin.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // UUID format validation
+  if (!isValidUUID(id)) {
+    return (
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Geçersiz Egzersiz ID</h1>
+        <div className="p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+          <p className="font-medium">Egzersiz ID{"'"} formatı geçersiz</p>
+          <p className="text-sm mt-1">ID: {id}</p>
+          <p className="text-sm mt-1">Lütfen ana sayfadan geçerli bir egzersiz seçin.</p>
+        </div>
+      </div>
+    );
+  }
+
   let exercise: Exercise | null = null;
   let error: string | null = null;
 
@@ -30,10 +65,15 @@ export default async function ExercisePage({ params }: ExercisePageProps) {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        // No rows returned
+        // No rows returned - egzersiz bulunamadı
         notFound();
       }
-      error = `DB Hatası: ${fetchError.message}`;
+      // Clean error messages
+      if (fetchError.message.includes('uuid')) {
+        error = 'Geçersiz egzersiz ID formatı';
+      } else {
+        error = 'Egzersiz yüklenirken hata oluştu';
+      }
     } else {
       exercise = data;
     }
@@ -49,7 +89,7 @@ export default async function ExercisePage({ params }: ExercisePageProps) {
           <p className="font-medium">Egzersiz yüklenemedi</p>
           <p className="text-sm mt-1">{error}</p>
           <p className="text-sm mt-2 text-red-600">
-            Olası sebepler: Ağ bağlantısı sorunu, veritabanı erişim hatası, geçersiz egzersiz ID&apos;si
+            Ana sayfaya dönerek farklı bir egzersiz deneyin.
           </p>
         </div>
       </div>

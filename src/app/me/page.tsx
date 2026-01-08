@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Manual Test Checklist:
+ * 1. Login and navigate to /me page
+ * 2. Verify attempts list shows real exercise titles (e.g., "Nefes Kontrolü ve Tonlama")
+ * 3. Verify no "Silinmiş egzersiz" / "Egzersiz bulunamadı" fallbacks appear
+ * 4. Check stats calculations work correctly with exercises relation
+ * 5. Ensure attempts without exercises (deleted exercises) are handled gracefully
+ */
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,11 +19,20 @@ interface AttemptWithExercise {
   id: string;
   created_at: string;
   status: string;
-  exercise: {
+  exercise_id: string;
+  exercises: {
     id: string;
     title: string;
-  };
+  } | null;
 }
+
+type AttemptRow = {
+  id: string;
+  created_at: string;
+  status: string;
+  exercise_id: string;
+  exercises: { id: string; title: string } | null;
+};
 
 export default function MePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -59,15 +77,7 @@ export default function MePage() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('attempts')
-        .select(`
-          id,
-          created_at,
-          status,
-          exercises:exercise_id (
-            id,
-            title
-          )
-        `)
+        .select('id, created_at, status, exercise_id, exercises!attempts_exercise_id_fkey(id, title)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(20)
@@ -75,17 +85,17 @@ export default function MePage() {
       if (error) {
         setAttemptsError(`DB Hatası: ${error.message}`)
       } else {
-        // Supabase foreign key sonuçlarını düzeltme (exercises array döndürüyor)
-        const formattedAttempts = (data || []).map(attempt => ({
-          id: attempt.id,
-          created_at: attempt.created_at,
-          status: attempt.status,
-          exercise: {
-            id: attempt.exercises?.[0]?.id || '',
-            title: attempt.exercises?.[0]?.title || 'Silinmiş egzersiz'
-          }
-        }))
-        setAttempts(formattedAttempts)
+        const rows = (data ?? []) as unknown as AttemptRow[];
+        
+        const formatted: AttemptWithExercise[] = rows.map((r) => ({
+          id: r.id,
+          created_at: r.created_at,
+          status: r.status,
+          exercise_id: r.exercise_id,
+          exercises: r.exercises ? { id: r.exercises.id, title: r.exercises.title } : null,
+        }));
+        
+        setAttempts(formatted)
       }
     } catch {
       setAttemptsError('Attempts listesi yüklenemedi. Ağ bağlantınızı kontrol edin.')
@@ -162,7 +172,9 @@ export default function MePage() {
                 <div key={attempt.id} className="p-3 bg-gray-50 rounded-lg border">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-gray-900">{attempt.exercise.title}</p>
+                      <p className="font-medium text-gray-900">
+                        {attempt.exercises?.title || 'Egzersiz bulunamadı'}
+                      </p>
                       <p className="text-sm text-gray-600 mt-1">
                         Durum: <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{attempt.status}</span>
                       </p>
@@ -200,7 +212,7 @@ export default function MePage() {
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <p className="text-2xl font-bold text-gray-600">
-                {new Set(attempts.map(a => a.exercise.id)).size}
+                {new Set(attempts.filter(a => a.exercises?.id).map(a => a.exercises!.id)).size}
               </p>
               <p className="text-sm text-gray-800">Farklı Egzersiz</p>
             </div>
